@@ -35,7 +35,7 @@ void setup()
 	// Start up
 	nRF905_init();
 
-  byte addr[NRF905_ADDR_SIZE] = {0xcc,0xcc,0xcc,0xcc};
+  byte addr[NRF905_ADDR_SIZE] = {0xcc,0xcc,0xcc,0xaa};
   
   nRF905_setRXAddress(addr);
 
