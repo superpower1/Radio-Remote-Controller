@@ -15,6 +15,8 @@
 #include <nRF905.h>
 #include <SPI.h>
 
+#define ACK 1
+
 int x;
 byte swAddr = 0xaa;
 
@@ -27,6 +29,7 @@ typedef struct {
 
 void setup()
 {
+  Serial.begin(9600);
   
 	// Start up
 	nRF905_init();
@@ -60,7 +63,61 @@ void setup()
 
   swAddr = revAddr;
 
-	Serial.begin(9600);
+  //send the available address continuously until the ack message received
+  while(1){
+
+    bool ackRev = false;
+    
+    packet_s addrPacket;
+    packet_s ackPacket;
+
+    addrPacket.dstAddress[0] = 0xcc;
+    addrPacket.dstAddress[1] = 0xcc;
+    addrPacket.dstAddress[2] = 0xcc;
+    addrPacket.dstAddress[3] = swAddr;
+
+    addrPacket.len = MAX_PACKET_SIZE;
+
+    addrPacket.data[0] = swAddr;
+
+    // Send packet
+    sendPacket(&addrPacket);
+
+    // Put into receive mode
+    nRF905_receive();
+
+    //wait for ack message packet
+    byte startTime = millis();
+    while(1){
+      
+      bool timeout = false;
+      
+      while(1){
+        
+        if(getPacket(&ackPacket)) break;
+
+        else if((byte)(millis()-startTime) > 50){ //50ms timeout       
+          timeout = true;
+          break;
+          }
+        }
+
+     if(timeout){ //timed out     
+        Serial.println(F("time out, resend..."));
+        break;  
+        }
+
+     else if(ackPacket.data[0] == ACK){ //recieved the ack message
+      ackRev = true;
+      break;
+      } 
+      
+     }
+    
+    if(ackRev)break;
+    }
+
+  //now can start transmitting control signal
 	
 	Serial.println(F("Ready"));
 }
@@ -82,7 +139,7 @@ void loop()
   
 	packet_s packet;
 
-	// Send serial data
+	// Send control data
 	byte dataSize;
 	
 		// Make sure we don't try to send more than max packet size
