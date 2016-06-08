@@ -41,15 +41,13 @@ void setup()
 	// Start up
 	nRF905_init();
 
-  int c = 0;
-
   packet_s addrPacket;
 
   byte revAddr = swAddr;
 
   //Loop from address 0xaa to 0xb3 (10 addresses), exit if the matched address is found
   while(1){
-    revAddr += c;
+    revAddr++;
     
     byte addr[NRF905_ADDR_SIZE] = {0xcc,0xcc,0xcc,revAddr};
   
@@ -59,15 +57,14 @@ void setup()
     nRF905_receive();
 
     //a packet is received and the address is correct 
-    if(!getPacket(&addrPacket)&&(addrPacket.data[0] == revAddr))break;
+    if(getPacket(&addrPacket)&&(addrPacket.data[0] == revAddr))break;
 
-    c++;
-    if(c >= 10){
+    if(revAddr >= 0xb4){
       revAddr = swAddr;
-      c=0;
       }
       
-    Serial.println(F("Matching..."));
+    Serial.println("Matching...");
+    Serial.println(revAddr,HEX);
     }
 
   swAddr = revAddr;

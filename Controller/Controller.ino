@@ -37,13 +37,9 @@ void setup()
   //search for available address
   byte revAddr = swAddr;
 
-  int c = 0;
-
   packet_s testPacket;
   
   while(1){
-    
-    revAddr += c;
     
     byte addr[NRF905_ADDR_SIZE] = {0xcc,0xcc,0xcc,revAddr};
     
@@ -53,11 +49,11 @@ void setup()
     nRF905_receive();
     
     if(!getPacket(&testPacket))break;
-    
-    c++;
-    if(c >= 10){
+
+    revAddr ++;
+
+    if(revAddr >= 0xb4){
       revAddr = swAddr;
-      c=0;
       } 
     }
 
@@ -103,7 +99,8 @@ void setup()
         }
 
      if(timeout){ //timed out     
-        Serial.println(F("time out, resend..."));
+        Serial.println("time out, resend...");
+        Serial.println(addrPacket.data[0],HEX);
         break;  
         }
 
