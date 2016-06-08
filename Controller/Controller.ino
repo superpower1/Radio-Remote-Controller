@@ -118,8 +118,9 @@ void setup()
     }
 
   //now can start transmitting control signal
-	
-	Serial.println(F("Ready"));
+	Serial.println("Ready");
+  Serial.println("The address is: ");
+  Serial.println(swAddr, HEX);
 }
 
 void loop()
@@ -134,8 +135,8 @@ void loop()
   x = analogRead(0);    
   int mapx = map(x, 0, 1023, 0, 180);
 
-  Serial.print(F("X = "));
-  Serial.println(x);
+  Serial.print("X = ");
+  Serial.println(mapx);
   
 	packet_s packet;
 
