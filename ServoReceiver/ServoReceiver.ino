@@ -16,7 +16,8 @@
 #include <SPI.h>
 #include <Servo.h>
 
-#define ACK 1
+#define TYPE_DATA 0
+#define TYPE_ACK 1
 
 Servo myservo1;  // servo control object
 
@@ -28,6 +29,7 @@ byte swAddr = 0xaa;
 #define MAX_PACKET_SIZE (NRF905_MAX_PAYLOAD - 2)
 typedef struct {
 	byte dstAddress[NRF905_ADDR_SIZE];
+  byte type;
 	byte len;
 	byte data[MAX_PACKET_SIZE];
 } packet_s;
@@ -55,26 +57,28 @@ void setup()
     // Put into receive mode
     nRF905_receive();
 
+    Serial.print("Searching addr: ");
+    Serial.println(revAddr,HEX);
+
     //a packet is received and the address is correct 
     if(getPacket(&addrPacket)){
-      Serial.println("Matching...");
-      Serial.print("Searching addr: ");
-      Serial.println(revAddr,HEX);
+      Serial.println("Packet receievd, Matching address...");
+      
       Serial.print("Reciecved addr: ");
       Serial.println(addrPacket.data[0],HEX);
       if(revAddr == addrPacket.data[0])break;
-      revAddr++;
-
-      if(revAddr >= 0xb4){
-        revAddr = swAddr;
-        }
+      else Serial.println("Wrong address");
+      
       
       }
     else Serial.println("No recieved packet, Searching...");
 
+    revAddr++;
 
-      
-    
+    if(revAddr >= 0xb4){
+      revAddr = swAddr;
+      }
+   
     }
 
   swAddr = revAddr;
@@ -87,13 +91,13 @@ void setup()
   addrPacket.dstAddress[2] = 0xcc;
   addrPacket.dstAddress[3] = swAddr;
 
-  addrPacket.len = MAX_PACKET_SIZE;
-  ackPacket.data[0] = ACK;  
+  addrPacket.type = TYPE_ACK;
+  addrPacket.len = 0; 
 
   sendPacket(&ackPacket);
 	
 	Serial.println("Ready");
-  Serial.println("The address is: ");
+  Serial.println("Using address: ");
   Serial.println(swAddr, HEX);
 }
 
@@ -105,7 +109,7 @@ void loop()
 
 	// Wait for data
 
-		if(getPacket(&packet)) // Got a packet?
+		if(getPacket(&packet) && packet.type == TYPE_DATA) // Got a data packet?
 		{
 			// Print data
       servoCtrl = (int) packet.data[0];
@@ -134,13 +138,14 @@ static bool getPacket(void* _packet)
 		return false;
 
 	// Convert byte array to packet
-	packet->len = buffer[0];
+	packet->type = buffer[0];
+  packet->len = buffer[1];
 
 	// Sanity check
 	if(packet->len > MAX_PACKET_SIZE)
 		packet->len = MAX_PACKET_SIZE;
 
-	memcpy(packet->data, &buffer[1], packet->len);
+	memcpy(packet->data, &buffer[2], packet->len);
 	
 	return true;
 }
@@ -153,10 +158,10 @@ static void sendPacket(void* _packet)
   packet_s* packet = (packet_s*)_packet;
 
   // Convert packet data to plain byte array
-  byte totalLength = packet->len + 1;
+  byte totalLength = packet->len + 2;
   byte tmpBuff[totalLength];
-
-  tmpBuff[0] = packet->len;
+  tmpBuff[0] = packet->type;
+  tmpBuff[1] = packet->len;
   memcpy(&tmpBuff[1], packet->data, packet->len);
 
   // Set address of device to send to

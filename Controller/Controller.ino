@@ -15,7 +15,8 @@
 #include <nRF905.h>
 #include <SPI.h>
 
-#define ACK 1
+#define TYPE_DATA 0
+#define TYPE_ACK 1
 
 int x;
 byte swAddr = 0xaa;
@@ -23,6 +24,7 @@ byte swAddr = 0xaa;
 #define MAX_PACKET_SIZE (NRF905_MAX_PAYLOAD - 2)
 typedef struct {
 	byte dstAddress[NRF905_ADDR_SIZE];
+  byte type;
 	byte len;
 	byte data[MAX_PACKET_SIZE];
 } packet_s;
@@ -70,6 +72,8 @@ void setup()
     addrPacket.dstAddress[1] = 0xcc;
     addrPacket.dstAddress[2] = 0xcc;
     addrPacket.dstAddress[3] = swAddr;
+    
+    addrPacket.type = TYPE_DATA;
 
     addrPacket.len = MAX_PACKET_SIZE;
 
@@ -98,7 +102,7 @@ void setup()
         
         if(getPacket(&ackPacket)) break;
 
-        else if((byte)(millis()-startTime) > 50){ //50ms timeout       
+        else if((byte)(millis()-startTime) > 100){ //50ms timeout       
           timeout = true;
           break;
           }
@@ -109,7 +113,7 @@ void setup()
         break;  
         }
 
-     else if(ackPacket.data[0] == ACK){ //recieved the ack message
+     else if(ackPacket.type == TYPE_ACK){ //recieved the ack message
       ackRev = true;
       break;
       } 
@@ -154,6 +158,8 @@ void loop()
     packet.dstAddress[2] = 0xcc;
     packet.dstAddress[3] = swAddr;
 
+    packet.type = TYPE_DATA;
+
 		packet.len = dataSize;
 
 		// Copy data from serial to packet buffer
@@ -174,11 +180,11 @@ static void sendPacket(void* _packet)
 	packet_s* packet = (packet_s*)_packet;
 
 	// Convert packet data to plain byte array
-	byte totalLength = packet->len + 1;
+	byte totalLength = packet->len + 2;
 	byte tmpBuff[totalLength];
-
-	tmpBuff[0] = packet->len;
-	memcpy(&tmpBuff[1], packet->data, packet->len);
+  tmpBuff[0] = packet->type;
+	tmpBuff[1] = packet->len;
+	memcpy(&tmpBuff[2], packet->data, packet->len);
 
 	// Set address of device to send to
 	nRF905_setTXAddress(packet->dstAddress);
@@ -204,13 +210,14 @@ static bool getPacket(void* _packet)
     return false;
 
   // Convert byte array to packet
-  packet->len = buffer[0];
+  packet->type = buffer[0];
+  packet->len = buffer[1];
 
   // Sanity check
   if(packet->len > MAX_PACKET_SIZE)
     packet->len = MAX_PACKET_SIZE;
 
-  memcpy(packet->data, &buffer[1], packet->len);
+  memcpy(packet->data, &buffer[2], packet->len);
   
   return true;
 }
