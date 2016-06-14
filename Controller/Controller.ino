@@ -59,8 +59,7 @@ void setup()
 
   swAddr = revAddr;
 
-  //send the available address continuously until the ack message received
-  while(1){
+
 
     bool ackRev = false;
     
@@ -75,9 +74,14 @@ void setup()
     addrPacket.len = MAX_PACKET_SIZE;
 
     addrPacket.data[0] = swAddr;
-
+    
+  //send the available address continuously until the ack message received
+  while(1){
     // Send packet
     sendPacket(&addrPacket);
+    
+    Serial.print("Sending addr: ");
+    Serial.println(addrPacket.data[0],HEX);
 
     // Put into receive mode
     nRF905_receive();
@@ -85,6 +89,8 @@ void setup()
     //wait for ack message packet
     byte startTime = millis();
     while(1){
+
+      nRF905_receive();
       
       bool timeout = false;
       
@@ -100,7 +106,6 @@ void setup()
 
      if(timeout){ //timed out     
         Serial.println("time out, resend...");
-        Serial.println(addrPacket.data[0],HEX);
         break;  
         }
 
