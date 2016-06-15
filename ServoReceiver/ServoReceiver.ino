@@ -45,6 +45,9 @@ void setup()
 	// Start up
 	nRF905_init();
 
+  //set the frequency
+  nRF905_setFrequency(NRF905_BAND_433, 433300000);
+
   packet_s addrPacket;
 
   byte revAddr = swAddr;

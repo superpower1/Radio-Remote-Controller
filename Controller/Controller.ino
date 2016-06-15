@@ -38,6 +38,9 @@ void setup()
 	// Start up
 	nRF905_init();
 
+  //set the frequency
+  nRF905_setFrequency(NRF905_BAND_433, 433300000);
+
   //search for available address
   byte revAddr = swAddr;
 
@@ -51,8 +54,11 @@ void setup()
     
     // Put into receive mode
     nRF905_receive();
-    
-    if(!getPacket(&testPacket))break;
+
+    delay(100);
+
+    byte buffer[NRF905_MAX_PAYLOAD];
+    if(!nRF905_getData(buffer, sizeof(buffer)))break;
 
     revAddr = revAddr + 0x11;
 
@@ -144,8 +150,9 @@ void loop()
   x = analogRead(0);    
   int mapx = map(x, 0, 1023, 0, 180);
 
-  Serial.print("X = ");
-  Serial.println(mapx);
+//  Serial.print("X = ");
+//  Serial.println(mapx);
+  delay(50);
   
 	packet_s packet;
 
