@@ -19,7 +19,7 @@
 #define TYPE_ACK 1
 
 int x;
-byte swAddr = 0xaa;
+byte swAddr = 0x11;
 
 #define MAX_PACKET_SIZE (NRF905_MAX_PAYLOAD - 2)
 typedef struct {
@@ -32,6 +32,8 @@ typedef struct {
 void setup()
 {
   Serial.begin(9600);
+
+  Serial.println("Begin-------------------------");
   
 	// Start up
 	nRF905_init();
@@ -52,16 +54,14 @@ void setup()
     
     if(!getPacket(&testPacket))break;
 
-    revAddr ++;
+    revAddr = revAddr + 0x11;
 
-    if(revAddr >= 0xb4){
+    if(revAddr > 0x99){
       revAddr = swAddr;
       } 
     }
 
-  swAddr = revAddr;
-
-
+    swAddr = revAddr;
 
     bool ackRev = false;
     
@@ -86,6 +86,8 @@ void setup()
     
     Serial.print("Sending addr: ");
     Serial.println(addrPacket.data[0],HEX);
+//    Serial.println("Using address: ");
+//    Serial.println(addrPacket.dstAddress[3], HEX);
 
     // Put into receive mode
     nRF905_receive();
@@ -102,7 +104,7 @@ void setup()
         
         if(getPacket(&ackPacket)) break;
 
-        else if((byte)(millis()-startTime) > 100){ //50ms timeout       
+        else if((byte)(millis()-startTime) > 100){ //100ms timeout       
           timeout = true;
           break;
           }
@@ -121,11 +123,12 @@ void setup()
      }
     
     if(ackRev)break;
+    delay(100);
     }
 
   //now can start transmitting control signal
 	Serial.println("Ready");
-  Serial.println("The address is: ");
+  Serial.println("Using address: ");
   Serial.println(swAddr, HEX);
 }
 
@@ -162,14 +165,11 @@ void loop()
 
 		packet.len = dataSize;
 
-		// Copy data from serial to packet buffer
-//		for(byte i=0;i<dataSize;i++)
-//			packet.data[i] = Serial.read();
-
     packet.data[0] = mapx;
 
 		// Send packet
 		sendPacket(&packet);
+
 }
 
 // Send a packet

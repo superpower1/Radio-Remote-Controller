@@ -24,7 +24,7 @@ Servo myservo1;  // servo control object
 int servoCtrl;
 int previous;
 
-byte swAddr = 0xaa;
+byte swAddr = 0x11;
 
 #define MAX_PACKET_SIZE (NRF905_MAX_PAYLOAD - 2)
 typedef struct {
@@ -39,6 +39,8 @@ void setup()
   myservo1.attach(4);
 
   Serial.begin(9600);
+
+  Serial.println("Begin-------------------------");
   
 	// Start up
 	nRF905_init();
@@ -47,13 +49,13 @@ void setup()
 
   byte revAddr = swAddr;
 
-  //Loop from address 0xaa to 0xb3 (10 addresses), exit if the matched address is found
+  //Loop from address 0x11 to 0x99 (10 addresses), exit if the matched address is found
   while(1){
     
     byte addr[NRF905_ADDR_SIZE] = {0xcc,0xcc,0xcc,revAddr};
   
     nRF905_setRXAddress(addr);
-
+    
     // Put into receive mode
     nRF905_receive();
 
@@ -73,28 +75,19 @@ void setup()
       }
     else Serial.println("No recieved packet, Searching...");
 
-    revAddr++;
+    revAddr = revAddr + 0x11;
 
-    if(revAddr >= 0xb4){
+    if(revAddr > 0x99){
       revAddr = swAddr;
       }
-   
+
     }
 
   swAddr = revAddr;
 
-  //send ack message to controller 
-  packet_s ackPacket;
-  
-  addrPacket.dstAddress[0] = 0xcc;
-  addrPacket.dstAddress[1] = 0xcc;
-  addrPacket.dstAddress[2] = 0xcc;
-  addrPacket.dstAddress[3] = swAddr;
-
-  addrPacket.type = TYPE_ACK;
-  addrPacket.len = 0; 
-
-  sendPacket(&ackPacket);
+  for(int i=0; i<100; i++){
+    sendACK();
+    }
 	
 	Serial.println("Ready");
   Serial.println("Using address: ");
@@ -103,6 +96,7 @@ void setup()
 
 void loop()
 {
+  
   packet_s packet;
 	// Put into receive mode
 	nRF905_receive();
@@ -123,6 +117,22 @@ void loop()
     }
 	
 }
+
+void sendACK(){
+  //send ack message to controller 
+  packet_s ackPacket;
+  
+  ackPacket.dstAddress[0] = 0xcc;
+  ackPacket.dstAddress[1] = 0xcc;
+  ackPacket.dstAddress[2] = 0xcc;
+  ackPacket.dstAddress[3] = swAddr;
+
+  ackPacket.type = TYPE_ACK;
+  ackPacket.len = 0; 
+
+  sendPacket(&ackPacket);
+    
+  }
 
 // Get a packet
 static bool getPacket(void* _packet)
